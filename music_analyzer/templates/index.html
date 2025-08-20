@@ -4,9 +4,84 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Music Analyzer</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+        #loader {
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid #3498db;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 2s linear infinite;
+            display: none; /* Initially hidden */
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body>
     <h1>Music Analyzer</h1>
-    <p>Analysis results will be displayed here.</p>
+    <form id="upload-form" enctype="multipart/form-data">
+        <input type="file" id="file-input" name="file" accept="audio/*" required>
+        <button type="submit">Analyze</button>
+    </form>
+    <div id="loader"></div>
+    <div id="results">
+        <p>Analysis results will be displayed here.</p>
+    </div>
+
+    <script>
+        document.getElementById('upload-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const fileInput = document.getElementById('file-input');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('Please select a file to analyze.');
+                return;
+            }
+
+            const loader = document.getElementById('loader');
+            const resultsDiv = document.getElementById('results');
+
+            loader.style.display = 'block';
+            resultsDiv.innerHTML = '';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const results = await response.json();
+
+                if (response.ok) {
+                    resultsDiv.innerHTML = `
+                        <h2>Analysis Complete</h2>
+                        <p>Tempo: ${results.tempo.toFixed(2)} BPM</p>
+                        <p>Beats found: ${results.beats.length}</p>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `<p>Error: ${results.error}</p>`;
+                }
+
+            } catch (error) {
+                resultsDiv.innerHTML = `<p>An unexpected error occurred: ${error.message}</p>`;
+            } finally {
+                loader.style.display = 'none';
+            }
+        });
+    </script>
 </body>
 </html>

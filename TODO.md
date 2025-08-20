@@ -4,14 +4,17 @@ This file tracks the planned features and next steps for the Music Analyzer proj
 
 ## High Priority
 
-- [ ] **Frontend Development**:
-    - [ ] Create a user interface with a file upload form.
-    - [ ] Add JavaScript to handle the file upload and send it to the `/analyze` endpoint.
-    - [ ] Display the returned tempo and beat analysis results on the page.
-    - [ ] Implement a loading indicator to show while the analysis is in progress.
+- [x] **Frontend Development**:
+    - [x] Create a user interface with a file upload form.
+    - [x] Add JavaScript to handle the file upload and send it to the `/analyze` endpoint.
+    - [x] Display the returned tempo and beat analysis results on the page.
+    - [x] Implement a loading indicator to show while the analysis is in progress.
 
 ## Medium Priority
 
+- [ ] **Preload Default Track**:
+    - [ ] Add a default audio track to the application.
+    - [ ] Implement logic to allow the user to analyze the preloaded track with a single click.
 - [ ] **YouTube Integration**:
     - [ ] Add a text input field for YouTube URLs.
     - [ ] Implement backend logic using `yt-dlp` to download audio from the provided URL.
