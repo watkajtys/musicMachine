@@ -12,9 +12,9 @@ This file tracks the planned features and next steps for the Music Analyzer proj
 
 ## Medium Priority
 
-- [ ] **Preload Default Track**:
-    - [ ] Add a default audio track to the application.
-    - [ ] Implement logic to allow the user to analyze the preloaded track with a single click.
+- [x] **Preload Default Track**:
+    - [x] Add a default audio track to the application.
+    - [x] Implement logic to automatically analyze the preloaded track on page load.
 - [ ] **YouTube Integration**:
     - [ ] Add a text input field for YouTube URLs.
     - [ ] Implement backend logic using `yt-dlp` to download audio from the provided URL.
