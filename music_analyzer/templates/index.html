@@ -37,23 +37,43 @@
             display: none; /* Initially hidden */
             margin: 2rem;
         }
-        #beat-grid {
-            display: flex;
-            flex-wrap: wrap;
-            padding: 10px;
-            min-height: 50px;
-            border: 1px solid #eee;
+        #structure-container {
+            width: 100%;
+            max-width: 800px;
+            margin: 1rem 0;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        #segment-timeline {
+            position: relative;
+            width: 100%;
+            height: 50px;
+            background-color: #eee;
             border-radius: 4px;
+            display: flex;
         }
-        .onset-marker {
-            width: 10px;
-            height: 30px;
-            background-color: #ccc;
-            margin: 2px;
-            transition: background-color 0.1s;
+        .segment {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.8em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
-        .onset-marker.active {
-            background-color: #3498db;
+        #playback-marker {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 2px;
+            height: 100%;
+            background-color: red;
+            pointer-events: none;
         }
         audio {
             width: 100%;
@@ -86,9 +106,11 @@
         <div id="results-content"></div>
     </div>
 
-    <div id="beat-grid-container" style="display: none;">
-        <h2>Rhythm Grid</h2>
-        <div id="beat-grid"></div>
+    <div id="structure-container" style="display: none;">
+        <h2>Song Structure</h2>
+        <div id="segment-timeline">
+            <div id="playback-marker"></div>
+        </div>
     </div>
 
 
@@ -103,13 +125,16 @@
         const resultsDiv = document.getElementById('results');
         const resultsContent = document.getElementById('results-content');
 
-        const beatGridContainer = document.getElementById('beat-grid-container');
-        const beatGrid = document.getElementById('beat-grid');
+        const structureContainer = document.getElementById('structure-container');
+        const segmentTimeline = document.getElementById('segment-timeline');
+        const playbackMarker = document.getElementById('playback-marker');
 
-        let onsetTimes = [];
+        let analysisData = {};
 
         function displayResults(results) {
             resultsDiv.style.display = 'block';
+            analysisData = results;
+
             if (results && results.error) {
                 resultsContent.innerHTML = `<p>Error: ${results.error}</p>`;
             } else if (results) {
@@ -120,22 +145,26 @@
                     <p>Beats found: ${beatsFound}</p>
                 `;
 
-                if (results.onset_times && results.onset_times.length > 0) {
-                    onsetTimes = results.onset_times;
-                    beatGridContainer.style.display = 'block';
-                    renderBeatGrid(onsetTimes);
+                if (results.segments && results.segments.length > 0) {
+                    structureContainer.style.display = 'block';
+                    renderStructure(results.segments, audioPlayer.duration);
                 }
             }
         }
 
-        function renderBeatGrid(onsets) {
-            beatGrid.innerHTML = ''; // Clear previous grid
-            onsets.forEach((time, index) => {
-                const marker = document.createElement('div');
-                marker.className = 'onset-marker';
-                marker.id = `onset-marker-${index}`;
-                marker.dataset.time = time;
-                beatGrid.appendChild(marker);
+        function renderStructure(segments, duration) {
+            // Clear previous segments, but keep the playback marker
+            segmentTimeline.innerHTML = '<div id="playback-marker"></div>';
+            const colors = ['#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe'];
+
+            segments.forEach((seg, index) => {
+                const [start, end] = seg;
+                const segmentDiv = document.createElement('div');
+                segmentDiv.className = 'segment';
+                segmentDiv.style.width = `${((end - start) / duration) * 100}%`;
+                segmentDiv.style.backgroundColor = colors[index % colors.length];
+                segmentDiv.textContent = `Seg ${index + 1}`;
+                segmentTimeline.appendChild(segmentDiv);
             });
         }
 
@@ -157,13 +186,12 @@
                 return;
             }
 
-            // Reset UI
             loader.style.display = 'block';
             resultsDiv.style.display = 'none';
-            beatGridContainer.style.display = 'none';
+            structureContainer.style.display = 'none';
             resultsContent.innerHTML = '';
-            beatGrid.innerHTML = '';
-            onsetTimes = [];
+            segmentTimeline.innerHTML = '<div id="playback-marker"></div>';
+            analysisData = {};
 
             const formData = new FormData();
             formData.append('file', file);
@@ -174,7 +202,16 @@
                     body: formData
                 });
                 const results = await response.json();
-                displayResults(results);
+
+                // We need the audio duration to render the timeline correctly
+                // Wait for the audio to load to get its duration
+                audioPlayer.onloadedmetadata = () => {
+                    displayResults(results);
+                };
+                // If metadata is already loaded, display results immediately
+                if(audioPlayer.readyState >= 1) {
+                    displayResults(results);
+                }
 
             } catch (error) {
                 resultsContent.innerHTML = `<p>An unexpected error occurred: ${error.message}</p>`;
@@ -185,40 +222,26 @@
         });
 
         audioPlayer.addEventListener('timeupdate', function() {
-            const currentTime = audioPlayer.currentTime;
-            onsetTimes.forEach((time, index) => {
-                const marker = document.getElementById(`onset-marker-${index}`);
-                if (marker) {
-                    if (currentTime >= time && (index === onsetTimes.length - 1 || currentTime < onsetTimes[index + 1])) {
-                        marker.classList.add('active');
-                    } else {
-                        // marker.classList.remove('active'); // Optional: remove active class from past events
-                    }
-                }
-            });
-        });
-
-        audioPlayer.addEventListener('seeking', function() {
-            const currentTime = audioPlayer.currentTime;
-            onsetTimes.forEach((time, index) => {
-                const marker = document.getElementById(`onset-marker-${index}`);
-                if(marker){
-                    if(currentTime > time){
-                        marker.classList.add('active');
-                    } else {
-                        marker.classList.remove('active');
-                    }
-                }
-            });
+            if (!audioPlayer.duration) return;
+            const percentage = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+            playbackMarker.style.left = `${percentage}%`;
         });
 
         // Load initial analysis data for the default track
         window.addEventListener('load', () => {
             const initialAnalysis = {{ initial_analysis | tojson }};
-            if (initialAnalysis) {
-                // Cant play default track, so just show results
+            if (initialAnalysis && !initialAnalysis.error) {
+                 resultsDiv.style.display = 'block';
+                 const tempo = initialAnalysis.tempo ? initialAnalysis.tempo.toFixed(2) : "N/A";
+                 const beatsFound = initialAnalysis.beat_times ? initialAnalysis.beat_times.length : 0;
+                 resultsContent.innerHTML = `
+                    <p>Tempo: ${tempo} BPM</p>
+                    <p>Beats found: ${beatsFound}</p>
+                 `;
+                // Can't get duration of default track easily, so we can't show structure for it
+            } else if (initialAnalysis && initialAnalysis.error) {
                 resultsDiv.style.display = 'block';
-                displayResults(initialAnalysis);
+                resultsContent.innerHTML = `<p>Error with default track: ${initialAnalysis.error}</p>`;
             }
         });
     </script>
