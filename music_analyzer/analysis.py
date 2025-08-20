@@ -18,9 +18,14 @@ def analyze_audio(filepath):
     # Get beat timings
     beat_times = librosa.frames_to_time(beat_frames, sr=sr)
 
+    # Detect onsets (percussive events)
+    onset_frames = librosa.onset.onset_detect(y=y, sr=sr)
+    onset_times = librosa.frames_to_time(onset_frames, sr=sr)
+
     return {
         "tempo": round(tempo_val, 2),
-        "beat_times": beat_times.tolist() # convert numpy array to list for JSON serialization
+        "beat_times": beat_times.tolist(),
+        "onset_times": onset_times.tolist()
     }
 
 def analyze_default_track():
