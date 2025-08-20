@@ -39,6 +39,23 @@
     </div>
 
     <script>
+        const resultsDiv = document.getElementById('results');
+        const loader = document.getElementById('loader');
+
+        function displayResults(results) {
+            if (results && results.error) {
+                resultsDiv.innerHTML = `<p>Error: ${results.error}</p>`;
+            } else if (results) {
+                const tempo = results.tempo ? results.tempo.toFixed(2) : "N/A";
+                const beatsFound = results.beat_times ? results.beat_times.length : 0;
+                resultsDiv.innerHTML = `
+                    <h2>Analysis Complete</h2>
+                    <p>Tempo: ${tempo} BPM</p>
+                    <p>Beats found: ${beatsFound}</p>
+                `;
+            }
+        }
+
         document.getElementById('upload-form').addEventListener('submit', async function(event) {
             event.preventDefault();
 
@@ -48,9 +65,6 @@
                 alert('Please select a file to analyze.');
                 return;
             }
-
-            const loader = document.getElementById('loader');
-            const resultsDiv = document.getElementById('results');
 
             loader.style.display = 'block';
             resultsDiv.innerHTML = '';
@@ -63,23 +77,21 @@
                     method: 'POST',
                     body: formData
                 });
-
                 const results = await response.json();
-
-                if (response.ok) {
-                    resultsDiv.innerHTML = `
-                        <h2>Analysis Complete</h2>
-                        <p>Tempo: ${results.tempo.toFixed(2)} BPM</p>
-                        <p>Beats found: ${results.beats.length}</p>
-                    `;
-                } else {
-                    resultsDiv.innerHTML = `<p>Error: ${results.error}</p>`;
-                }
+                displayResults(results);
 
             } catch (error) {
                 resultsDiv.innerHTML = `<p>An unexpected error occurred: ${error.message}</p>`;
             } finally {
                 loader.style.display = 'none';
+            }
+        });
+
+        // Load initial analysis data when the page loads
+        window.addEventListener('load', () => {
+            const initialAnalysis = {{ initial_analysis | tojson }};
+            if (initialAnalysis) {
+                displayResults(initialAnalysis);
             }
         });
     </script>

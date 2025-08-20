@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, jsonify
 import os
 from werkzeug.utils import secure_filename
-from analysis import analyze_audio
+from analysis import analyze_audio, analyze_default_track
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -9,7 +9,12 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    try:
+        default_analysis = analyze_default_track()
+    except Exception as e:
+        # In case the default analysis fails, we can pass an error or empty data
+        default_analysis = {"error": f"Could not analyze default track: {e}"}
+    return render_template('index.html', initial_analysis=default_analysis)
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
